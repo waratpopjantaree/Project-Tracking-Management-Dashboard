@@ -1,0 +1,6 @@
+{
+  "name": "Project Tracking & Management Dashboard",
+  "description": "ระบบติดตามและบริหารโครงการบน Google Sheets พร้อม Dashboard อัตโนมัติ กราฟสรุปผล รหัสอัตโนมัติ และสคริปต์ Google Apps Script",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

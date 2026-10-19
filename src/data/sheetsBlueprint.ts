@@ -40,7 +40,7 @@ export const sheetsDefinitions: SheetDefinition[] = [
       { name: 'ชื่อโครงการ (B)', key: 'projectName', type: 'Text', description: 'ชื่อโครงการภาษาไทยหรืออังกฤษอย่างเป็นทางการ', example: 'ระบบบริหารจัดการโรงพยาบาลอัจฉริยะ' },
       { name: 'รายละเอียดโครงการ (C)', key: 'description', type: 'Text / Note', description: 'วัตถุประสงค์และขอบเขตงานโดยย่อ', example: 'พัฒนาระบบ ERP เชื่อมโยงเวชระเบียนและคลังยา' },
       { name: 'หน่วยงาน (D)', key: 'department', type: 'Dropdown (List)', description: 'ฝ่ายหรือสำนักที่รับผิดชอบ ดึงจากชีต Settings', example: 'สำนักเทคโนโลยีสารสนเทศ (IT)' },
-      { name: 'ผู้รับผิดชอบโครงการ (E)', key: 'owner', type: 'Dropdown (List)', description: 'Project Manager หรือหัวหน้าโครงการ', example: 'วิภาดา เลิศวิชา (Lead PM)' },
+      { name: 'ผู้รับผิดชอบโครงการ (E)', key: 'owner', type: 'Dropdown (List)', description: 'ผู้รับผิดชอบโครงการ', example: 'วิภาดา เลิศวิชา' },
       { name: 'วันที่เริ่มต้น (F)', key: 'startDate', type: 'Date (DD/MM/YYYY)', description: 'วันเริ่มดำเนินงานตามแผนงาน', example: '01/08/2026' },
       { name: 'วันสิ้นสุดตามแผน (G)', key: 'plannedEndDate', type: 'Date (DD/MM/YYYY)', description: 'กำหนดการส่งมอบงานโครงการทั้งหมด', example: '15/12/2026' },
       { name: 'วันสิ้นสุดจริง (H)', key: 'actualEndDate', type: 'Date (DD/MM/YYYY)', description: 'วันที่ปิดโครงการและตรวจรับงานจริง', example: '-' },
@@ -111,7 +111,7 @@ export const sheetsDefinitions: SheetDefinition[] = [
     color: '#FEF9C3',
     columns: [
       { name: 'หน่วยงาน (คอลัมน์ A)', key: 'dept', type: 'List', description: 'A2:A - รายชื่อฝ่ายหรือสำนักในองค์กร', example: 'สำนักเทคโนโลยีสารสนเทศ (IT)' },
-      { name: 'ผู้รับผิดชอบ (คอลัมน์ B)', key: 'staff', type: 'List', description: 'B2:B - รายชื่อพนักงานและทีมงาน', example: 'วิภาดา เลิศวิชา (Lead PM)' },
+      { name: 'ผู้รับผิดชอบโครงการ (คอลัมน์ B)', key: 'staff', type: 'List', description: 'B2:B - รายชื่อผู้รับผิดชอบโครงการ', example: 'วิภาดา เลิศวิชา' },
       { name: 'สถานะโครงการ (คอลัมน์ C)', key: 'projStatus', type: 'List', description: 'C2:C - ยังไม่เริ่ม, กำลังดำเนินการ, เสี่ยงล่าช้า, ล่าช้า, เสร็จสิ้น ฯลฯ', example: 'กำลังดำเนินการ' },
       { name: 'สถานะงานย่อย (คอลัมน์ D)', key: 'taskStatus', type: 'List', description: 'D2:D - ยังไม่เริ่ม, กำลังดำเนินการ, รอดำเนินการ, เสร็จสิ้น, ยกเลิก', example: 'เสร็จสิ้น' },
       { name: 'ระดับความรุนแรง (คอลัมน์ E)', key: 'severity', type: 'List', description: 'E2:E - ต่ำ, ปานกลาง, สูง, วิกฤต', example: 'วิกฤต' },
@@ -363,17 +363,18 @@ export const conditionalFormattingRules = [
 
 export const appsScriptCode = `/**
  * =========================================================================
- * Project Tracking & Management Dashboard - Google Apps Script
+ * Repair tracking - Google Apps Script
  * =========================================================================
- * สร้างขึ้นเพื่อการบริหารจัดการโครงการ งานย่อย และปัญหา บน Google Sheets
+ * สร้างขึ้นเพื่อการบริหารจัดการงานซ่อม งานย่อย และปัญหา บน Google Sheets
  * มีระบบสร้างรหัสอัตโนมัติ เมนูควบคุม และฟอร์มป้อนข้อมูลผ่าน Dialog
  */
 
 // 1. สร้าง Custom Menu เมื่อเปิด Google Sheets
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu('📊 Project Management')
+  ui.createMenu('🔧 Repair Tracking')
     .addItem('➕ เพิ่มโครงการใหม่ (Add Project)', 'showAddProjectDialog')
+    .addItem('🗑️ ลบโครงการหลัก (Delete Project)', 'showDeleteProjectDialog')
     .addItem('📝 เพิ่มงานย่อย (Add Task)', 'showAddTaskDialog')
     .addItem('⚠️ บันทึกปัญหา (Add Issue)', 'showAddIssueDialog')
     .addSeparator()
@@ -612,7 +613,101 @@ function checkAlertsNotification() {
   SpreadsheetApp.getUi().alert('รายงานสถานะความเสี่ยง', msg, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
-// 9. คำนวณและอัปเดตชีตทั้งหมด
+// 9. ฟังก์ชันลบโครงการหลัก (Dialog และกระบวนการลบ)
+function showDeleteProjectDialog() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Project_Master');
+  if (!sheet || sheet.getLastRow() <= 1) {
+    SpreadsheetApp.getUi().alert('แจ้งเตือน', 'ยังไม่มีโครงการในระบบให้ลบ', SpreadsheetApp.getUi().ButtonSet.OK);
+    return;
+  }
+  
+  const options = getProjectOptions();
+  let promptMsg = 'ระบุรหัสโครงการที่ต้องการลบ (เช่น PRJ-001):\\n\\nรายชื่อโครงการที่มีอยู่ในระบบ:\\n';
+  options.forEach(function(p) {
+    promptMsg += '• ' + p.id + ' : ' + p.name + '\\n';
+  });
+  
+  const response = SpreadsheetApp.getUi().prompt('🗑️ ลบโครงการหลัก', promptMsg, SpreadsheetApp.getUi().ButtonSet.OK_CANCEL);
+  if (response.getSelectedButton() === SpreadsheetApp.getUi().Button.OK) {
+    const inputId = response.getResponseText().trim().toUpperCase();
+    if (!inputId) return;
+    
+    const confirmResp = SpreadsheetApp.getUi().alert(
+      'ยืนยันการลบโครงการ',
+      'คุณแน่ใจว่าต้องการลบโครงการ ' + inputId + ' ใช่หรือไม่?\\n(งานย่อยและปัญหาทั้งหมดภายใต้โครงการนี้จะถูกลบออกด้วย)',
+      SpreadsheetApp.getUi().ButtonSet.YES_NO
+    );
+    
+    if (confirmResp === SpreadsheetApp.getUi().Button.YES) {
+      const res = deleteProject(inputId);
+      SpreadsheetApp.getUi().alert(res.success ? 'สำเร็จ' : 'ผิดพลาด', res.message, SpreadsheetApp.getUi().ButtonSet.OK);
+    }
+  }
+}
+
+function deleteProject(projectId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const projSheet = ss.getSheetByName('Project_Master');
+    const taskSheet = ss.getSheetByName('Task_Tracking');
+    const issueSheet = ss.getSheetByName('Issue_Log');
+    
+    if (!projSheet) throw new Error('ไม่พบชีต Project_Master');
+    
+    let deletedCount = 0;
+    const pLastRow = projSheet.getLastRow();
+    if (pLastRow > 1) {
+      const pValues = projSheet.getRange(2, 1, pLastRow - 1, 1).getValues();
+      for (let i = pValues.length - 1; i >= 0; i--) {
+        if (pValues[i][0] === projectId) {
+          projSheet.deleteRow(i + 2);
+          deletedCount++;
+        }
+      }
+    }
+    
+    if (deletedCount === 0) {
+      return { success: false, message: 'ไม่พบรหัสโครงการ ' + projectId + ' ในระบบ' };
+    }
+    
+    // ลบงานย่อยใน Task_Tracking ที่เชื่อมกับโครงการนี้
+    let deletedTasks = 0;
+    if (taskSheet && taskSheet.getLastRow() > 1) {
+      const tLastRow = taskSheet.getLastRow();
+      const tValues = taskSheet.getRange(2, 2, tLastRow - 1, 1).getValues();
+      for (let i = tValues.length - 1; i >= 0; i--) {
+        if (tValues[i][0] === projectId) {
+          taskSheet.deleteRow(i + 2);
+          deletedTasks++;
+        }
+      }
+    }
+    
+    // ลบปัญหาใน Issue_Log ที่เชื่อมกับโครงการนี้
+    let deletedIssues = 0;
+    if (issueSheet && issueSheet.getLastRow() > 1) {
+      const iLastRow = issueSheet.getLastRow();
+      const iValues = issueSheet.getRange(2, 2, iLastRow - 1, 1).getValues();
+      for (let i = iValues.length - 1; i >= 0; i--) {
+        if (iValues[i][0] === projectId) {
+          issueSheet.deleteRow(i + 2);
+          deletedIssues++;
+        }
+      }
+    }
+    
+    SpreadsheetApp.flush();
+    return { 
+      success: true, 
+      message: 'ลบโครงการ ' + projectId + ' สำเร็จแล้ว!\\n(รวมงานย่อย ' + deletedTasks + ' งาน และปัญหา ' + deletedIssues + ' ข้อ)' 
+    };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+// 10. คำนวณและอัปเดตชีตทั้งหมด
 function recalculateAll() {
   SpreadsheetApp.flush();
   SpreadsheetApp.getUi().alert('สำเร็จ', 'อัปเดตและคำนวณข้อมูลในระบบเรียบร้อยแล้ว', SpreadsheetApp.getUi().ButtonSet.OK);

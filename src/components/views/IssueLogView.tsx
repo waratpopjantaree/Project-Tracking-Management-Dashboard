@@ -281,18 +281,14 @@ export const IssueLogView: React.FC<IssueLogViewProps> = ({
                         <button
                           onClick={() => onEditIssue(i)}
                           title="แก้ไขปัญหา"
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`ยืนยันการลบปัญหา ${i.issueId}: ${i.title} ?`)) {
-                              onDeleteIssue(i.issueId);
-                            }
-                          }}
-                          title="ลบปัญหา"
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                          onClick={() => onDeleteIssue(i.issueId)}
+                          title="ลบปัญหานี้"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

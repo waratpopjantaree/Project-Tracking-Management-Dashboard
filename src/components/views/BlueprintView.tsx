@@ -56,7 +56,7 @@ export const BlueprintView: React.FC = () => {
             <span>พิมพ์เขียวระบบและชุดโค้ด Google Sheets & Apps Script ฉบับสมบูรณ์</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            คู่มือการติดตั้งและชุดสูตร Project Tracking & Management
+            คู่มือการติดตั้งและชุดสูตร Repair tracking
           </h2>
           <p className="text-xs sm:text-sm text-purple-200 font-normal leading-relaxed">
             รวบรวมโครงสร้างคอลัมน์ สูตร Google Sheets ที่คำนวณถูกต้องแม่นยำ กฎ Conditional Formatting สีพาสเทล โค้ด Apps Script พร้อมใช้ และคู่มือขั้นตอนการนำไปสร้างไฟล์จริงบน Google Sheets
@@ -399,7 +399,7 @@ export const BlueprintView: React.FC = () => {
 
                     <div className="text-[11px] text-slate-600 space-y-1 pt-2 border-t border-slate-200">
                       <div>ฝ่าย: {p.department}</div>
-                      <div>PM: {p.owner}</div>
+                      <div>ผู้รับผิดชอบโครงการ: {p.owner}</div>
                       <div>งบประมาณ: ฿{p.budget.toLocaleString()}</div>
                       <div className="font-semibold text-purple-700">
                         มี {projectTasks.length} งานย่อย | {projectIssues.length} ปัญหา
@@ -456,7 +456,7 @@ export const BlueprintView: React.FC = () => {
                   <li>ลบโค้ดเดิมทั้งหมดในไฟล์ <code>Code.gs</code> แล้ววางโค้ดจาก &quot;ขั้นตอนที่ 4&quot; ลงไป</li>
                   <li>กดไอคอน <strong>+</strong> ด้านซ้ายเลือก <strong>HTML</strong> ตั้งชื่อว่า <code>Form</code> แล้วนำโค้ด Form.html ไปวาง</li>
                   <li>กดปุ่ม <strong>บันทึก (Ctrl+S)</strong> แล้วกลับมาที่ชีต กดรีเฟรชหน้าเว็บ (F5) 1 ครั้ง</li>
-                  <li>จะเห็นเมนูใหม่ปรากฏขึ้นบนเมนูบาร์: <strong>📊 Project Management</strong></li>
+                  <li>จะเห็นเมนูใหม่ปรากฏขึ้นบนเมนูบาร์: <strong>🔧 Repair Tracking</strong></li>
                 </ul>
               </div>
 
@@ -486,7 +486,7 @@ export const BlueprintView: React.FC = () => {
                   <span>คู่มือการใช้งานประจำวัน</span>
                 </div>
                 <ul className="text-xs text-slate-600 space-y-1.5 pl-8 list-disc">
-                  <li><strong>เพิ่มโครงการ:</strong> คลิกเมนู <code>📊 Project Management &gt; ➕ เพิ่มโครงการใหม่</code> รหัส PRJ-xxx จะถูกสร้างให้อัตโนมัติ</li>
+                  <li><strong>เพิ่มโครงการ:</strong> คลิกเมนู <code>🔧 Repair Tracking &gt; ➕ เพิ่มโครงการใหม่</code> รหัส PRJ-xxx จะถูกสร้างให้อัตโนมัติ</li>
                   <li><strong>เพิ่มงานย่อย:</strong> เลือกรหัสโครงการหลัก กำหนดน้ำหนักงาน (Weight %) และ Deadline วันคงเหลือและงานล่าช้าจะคำนวณอัตโนมัติ</li>
                   <li><strong>บันทึกปัญหา:</strong> บันทึกอาการและระบุระดับความรุนแรง (วิกฤต/สูง) เพื่อให้เตือนบน Dashboard ทันที</li>
                   <li><strong>ตรวจเช็กความเสี่ยง:</strong> คลิกเมนู <code>🚨 ตรวจสอบงานล่าช้า &amp; แจ้งเตือน</code> ระบบจะนับและสรุปงานที่เลยกำหนดให้ทันที</li>

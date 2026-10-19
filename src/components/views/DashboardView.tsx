@@ -28,7 +28,10 @@ import {
   ShieldAlert,
   Calendar,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Plus,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -38,6 +41,9 @@ interface DashboardViewProps {
   settings: AppSettings;
   onNavigateToTab: (tab: any) => void;
   onSelectProject?: (projectId: string) => void;
+  onOpenProjectModal?: () => void;
+  onEditProject?: (project: Project) => void;
+  onDeleteProject?: (projectId: string) => void;
   onOpenTaskModal: () => void;
   onOpenIssueModal: () => void;
 }
@@ -49,6 +55,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   settings,
   onNavigateToTab,
   onSelectProject,
+  onOpenProjectModal,
+  onEditProject,
+  onDeleteProject,
   onOpenTaskModal,
   onOpenIssueModal
 }) => {
@@ -57,7 +66,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     projectId: 'all',
     assignee: 'all',
     status: 'all',
-    search: ''
+    search: '',
+    department: 'all'
   });
 
   // Filtered dataset
@@ -66,6 +76,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       if (filter.projectId !== 'all' && p.projectId !== filter.projectId) return false;
       if (filter.assignee !== 'all' && p.owner !== filter.assignee) return false;
       if (filter.status !== 'all' && p.status !== filter.status) return false;
+      if (filter.department && filter.department !== 'all' && p.department !== filter.department) return false;
       if (filter.search) {
         const q = filter.search.toLowerCase();
         return p.projectName.toLowerCase().includes(q) || 
@@ -203,6 +214,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ))}
             </select>
 
+            {/* Filter by Department */}
+            <select
+              value={filter.department || 'all'}
+              onChange={e => setFilter({ ...filter, department: e.target.value })}
+              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-sky-400 focus:outline-hidden max-w-[160px] truncate"
+            >
+              <option value="all">ทุกหน่วยงาน</option>
+              {settings.departments.map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+
             {/* Filter by Status */}
             <select
               value={filter.status}
@@ -227,9 +250,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ))}
             </select>
 
-            {(filter.projectId !== 'all' || filter.assignee !== 'all' || filter.status !== 'all' || filter.search) && (
+            {(filter.projectId !== 'all' || filter.assignee !== 'all' || filter.status !== 'all' || (filter.department && filter.department !== 'all') || filter.search) && (
               <button
-                onClick={() => setFilter({ projectId: 'all', assignee: 'all', status: 'all', search: '' })}
+                onClick={() => setFilter({ projectId: 'all', assignee: 'all', status: 'all', department: 'all', search: '' })}
                 className="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-medium transition-colors"
               >
                 ล้างตัวกรอง
@@ -394,12 +417,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </h3>
               <p className="text-xs text-slate-400">คำนวณจากน้ำหนักงานจริงใน Task_Tracking</p>
             </div>
-            <button
-              onClick={() => onNavigateToTab('projects')}
-              className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center"
-            >
-              ดูทั้งหมด <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-            </button>
+            <div className="flex items-center space-x-2">
+              {onOpenProjectModal && (
+                <button
+                  onClick={onOpenProjectModal}
+                  className="px-2.5 py-1 text-xs font-semibold bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 rounded-lg flex items-center space-x-1 transition-all"
+                  title="เพิ่มโครงการหลักใหม่"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ โครงการ</span>
+                </button>
+              )}
+              <button
+                onClick={() => onNavigateToTab('projects')}
+                className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center"
+              >
+                ดูทั้งหมด <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -418,16 +453,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 : 'bg-sky-500';
 
               return (
-                <div key={project.projectId} className="space-y-1.5">
+                <div key={project.projectId} className="group p-2 -mx-2 rounded-xl hover:bg-slate-50/70 transition-colors space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">
+                    <div className="flex items-center space-x-2 flex-1 min-w-0 pr-2">
+                      <span className="font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] shrink-0">
                         {project.projectId}
                       </span>
                       <span className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-xs">
                         {project.projectName}
                       </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
                         isDone ? 'bg-emerald-100 text-emerald-800' :
                         isDelayed ? 'bg-orange-100 text-orange-800' :
                         isAtRisk ? 'bg-amber-100 text-amber-800' :
@@ -436,8 +471,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {project.status}
                       </span>
                     </div>
-                    <div className="font-bold text-slate-700 font-mono">
-                      {progress}%
+
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <div className="font-bold text-slate-700 font-mono">
+                        {progress}%
+                      </div>
+                      {/* Quick Actions */}
+                      <div className="flex items-center space-x-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                        {onEditProject && (
+                          <button
+                            onClick={() => onEditProject(project)}
+                            title="แก้ไขโครงการ"
+                            className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {onDeleteProject && (
+                          <button
+                            onClick={() => onDeleteProject(project.projectId)}
+                            title="ลบโครงการ"
+                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -459,8 +518,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             })}
 
             {enrichedP.length === 0 && (
-              <div className="text-center py-8 text-xs text-slate-400">
-                ไม่พบโครงการที่ตรงกับเงื่อนไขการค้นหา
+              <div className="text-center py-12 text-xs">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                  <FolderKanban className="w-5 h-5" />
+                </div>
+                <div className="font-semibold text-slate-600 mb-1">ไม่พบโครงการในระบบ</div>
+                <p className="text-slate-400 mb-3">กดปุ่มด้านล่างเพื่อเพิ่มโครงการหลักใหม่ได้ทันที</p>
+                {onOpenProjectModal && (
+                  <button
+                    onClick={onOpenProjectModal}
+                    className="px-3.5 py-1.5 text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white rounded-lg inline-flex items-center space-x-1 shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>เพิ่มโครงการหลักใหม่</span>
+                  </button>
+                )}
               </div>
             )}
           </div>

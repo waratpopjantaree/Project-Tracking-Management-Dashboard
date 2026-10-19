@@ -98,4 +98,5 @@ export interface DashboardFilter {
   assignee: string;
   status: string;
   search: string;
+  department?: string;
 }

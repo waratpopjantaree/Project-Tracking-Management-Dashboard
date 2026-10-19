@@ -303,18 +303,14 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
                         <button
                           onClick={() => onEditTask(t)}
                           title="แก้ไขงานย่อย"
-                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`ยืนยันการลบงาน ${t.taskId}: ${t.taskName} ?`)) {
-                              onDeleteTask(t.taskId);
-                            }
-                          }}
-                          title="ลบงานย่อย"
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                          onClick={() => onDeleteTask(t.taskId)}
+                          title="ลบงานย่อยนี้"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

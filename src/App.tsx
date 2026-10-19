@@ -24,6 +24,7 @@ import { BlueprintView } from './components/views/BlueprintView';
 import { ProjectModal } from './components/modals/ProjectModal';
 import { TaskModal } from './components/modals/TaskModal';
 import { IssueModal } from './components/modals/IssueModal';
+import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 
 const STORAGE_KEYS = {
   PROJECTS: 'pts_projects_v1',
@@ -84,6 +85,15 @@ export default function App() {
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [defaultIssueProjectId, setDefaultIssueProjectId] = useState<string | undefined>(undefined);
 
+  // Deletion Confirmation Modal State
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+    type: 'project' | 'task' | 'issue' | 'reset';
+    associatedTasksCount?: number;
+    associatedIssuesCount?: number;
+  } | null>(null);
+
   // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
@@ -111,11 +121,26 @@ export default function App() {
     setEditingProject(null);
   };
 
-  const handleDeleteProject = (projectId: string) => {
+  const executeDeleteProject = (projectId: string) => {
     setProjects(prev => prev.filter(p => p.projectId !== projectId));
     // Also delete linked tasks and issues
     setTasks(prev => prev.filter(t => t.projectId !== projectId));
     setIssues(prev => prev.filter(i => i.projectId !== projectId));
+  };
+
+  const promptDeleteProject = (projectId: string) => {
+    const proj = projects.find(p => p.projectId === projectId);
+    if (!proj) return;
+    const linkedTasks = tasks.filter(t => t.projectId === projectId).length;
+    const linkedIssues = issues.filter(i => i.projectId === projectId).length;
+
+    setDeleteTarget({
+      id: proj.projectId,
+      name: proj.projectName,
+      type: 'project',
+      associatedTasksCount: linkedTasks,
+      associatedIssuesCount: linkedIssues
+    });
   };
 
   // Handlers for Tasks
@@ -128,8 +153,18 @@ export default function App() {
     setEditingTask(null);
   };
 
-  const handleDeleteTask = (taskId: string) => {
+  const executeDeleteTask = (taskId: string) => {
     setTasks(prev => prev.filter(t => t.taskId !== taskId));
+  };
+
+  const promptDeleteTask = (taskId: string) => {
+    const t = tasks.find(item => item.taskId === taskId);
+    if (!t) return;
+    setDeleteTarget({
+      id: t.taskId,
+      name: t.taskName,
+      type: 'task'
+    });
   };
 
   // Handlers for Issues
@@ -142,22 +177,52 @@ export default function App() {
     setEditingIssue(null);
   };
 
-  const handleDeleteIssue = (issueId: string) => {
+  const executeDeleteIssue = (issueId: string) => {
     setIssues(prev => prev.filter(i => i.issueId !== issueId));
   };
 
+  const promptDeleteIssue = (issueId: string) => {
+    const i = issues.find(item => item.issueId === issueId);
+    if (!i) return;
+    setDeleteTarget({
+      id: i.issueId,
+      name: i.title,
+      type: 'issue'
+    });
+  };
+
   // Reset to initial demo data
-  const handleResetData = () => {
-    if (window.confirm('คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้น 3 โครงการตัวอย่างใช่หรือไม่?')) {
-      setProjects(sampleProjects);
-      setTasks(sampleTasks);
-      setIssues(sampleIssues);
-      setSettings(initialSettings);
-      localStorage.removeItem(STORAGE_KEYS.PROJECTS);
-      localStorage.removeItem(STORAGE_KEYS.TASKS);
-      localStorage.removeItem(STORAGE_KEYS.ISSUES);
-      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+  const executeResetData = () => {
+    setProjects(sampleProjects);
+    setTasks(sampleTasks);
+    setIssues(sampleIssues);
+    setSettings(initialSettings);
+    localStorage.removeItem(STORAGE_KEYS.PROJECTS);
+    localStorage.removeItem(STORAGE_KEYS.TASKS);
+    localStorage.removeItem(STORAGE_KEYS.ISSUES);
+    localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+  };
+
+  const promptResetData = () => {
+    setDeleteTarget({
+      id: 'ALL',
+      name: 'ข้อมูลโครงการทั้งหมด',
+      type: 'reset'
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'project') {
+      executeDeleteProject(deleteTarget.id);
+    } else if (deleteTarget.type === 'task') {
+      executeDeleteTask(deleteTarget.id);
+    } else if (deleteTarget.type === 'issue') {
+      executeDeleteIssue(deleteTarget.id);
+    } else if (deleteTarget.type === 'reset') {
+      executeResetData();
     }
+    setDeleteTarget(null);
   };
 
   // Open modals
@@ -207,7 +272,7 @@ export default function App() {
         onOpenNewTask={() => openNewTask()}
         onOpenNewIssue={() => openNewIssue()}
         onOpenBlueprint={() => setActiveTab('blueprint')}
-        onResetData={handleResetData}
+        onResetData={promptResetData}
         activeTab={activeTab}
       />
 
@@ -231,6 +296,9 @@ export default function App() {
             issues={issues}
             settings={settings}
             onNavigateToTab={setActiveTab}
+            onOpenProjectModal={openNewProject}
+            onEditProject={openEditProject}
+            onDeleteProject={promptDeleteProject}
             onOpenTaskModal={() => openNewTask()}
             onOpenIssueModal={() => openNewIssue()}
           />
@@ -244,8 +312,9 @@ export default function App() {
             settings={settings}
             onAddProject={openNewProject}
             onEditProject={openEditProject}
-            onDeleteProject={handleDeleteProject}
+            onDeleteProject={promptDeleteProject}
             onSelectProjectFilter={() => {}}
+            onUpdateSettings={setSettings}
           />
         )}
 
@@ -256,7 +325,7 @@ export default function App() {
             settings={settings}
             onAddTask={() => openNewTask()}
             onEditTask={openEditTask}
-            onDeleteTask={handleDeleteTask}
+            onDeleteTask={promptDeleteTask}
           />
         )}
 
@@ -267,7 +336,7 @@ export default function App() {
             settings={settings}
             onAddIssue={() => openNewIssue()}
             onEditIssue={openEditIssue}
-            onDeleteIssue={handleDeleteIssue}
+            onDeleteIssue={promptDeleteIssue}
           />
         )}
 
@@ -295,9 +364,12 @@ export default function App() {
         isOpen={isProjectModalOpen}
         onClose={() => setIsProjectModalOpen(false)}
         onSave={handleSaveProject}
+        onDelete={promptDeleteProject}
+        onUpdateSettings={setSettings}
         initialProject={editingProject}
         generatedId={nextProjectId}
         settings={settings}
+        projects={projects}
       />
 
       <TaskModal
@@ -320,6 +392,29 @@ export default function App() {
         projects={projects}
         settings={settings}
         defaultProjectId={defaultIssueProjectId}
+      />
+
+      {/* In-App Deletion & Confirmation Modal (No window.confirm) */}
+      <ConfirmDeleteModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title={
+          deleteTarget?.type === 'project'
+            ? 'ยืนยันการลบโครงการหลัก'
+            : deleteTarget?.type === 'task'
+            ? 'ยืนยันการลบงานย่อย'
+            : deleteTarget?.type === 'issue'
+            ? 'ยืนยันการลบปัญหา'
+            : 'ยืนยันการรีเซ็ตข้อมูล'
+        }
+        itemName={deleteTarget?.name || ''}
+        itemId={deleteTarget?.id || ''}
+        itemType={deleteTarget?.type || 'project'}
+        associatedInfo={{
+          tasksCount: deleteTarget?.associatedTasksCount,
+          issuesCount: deleteTarget?.associatedIssuesCount
+        }}
       />
     </div>
   );

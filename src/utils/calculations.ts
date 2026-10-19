@@ -214,7 +214,7 @@ export function formatDateThai(dateStr: string): string {
   return dateStr;
 }
 
-export function generateNextId(prefix: 'PRJ' | 'TASK' | 'ISS', items: { projectId?: string; taskId?: string; issueId?: string }[]): string {
+export function generateNextId(prefix: string, items: { projectId?: string; taskId?: string; issueId?: string }[]): string {
   const ids = items.map(item => {
     const raw = item.projectId || item.taskId || item.issueId || '';
     if (raw.startsWith(prefix + '-')) {

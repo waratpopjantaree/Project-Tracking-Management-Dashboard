@@ -56,7 +56,7 @@ export const BlueprintView: React.FC = () => {
             <span>พิมพ์เขียวระบบและชุดโค้ด Google Sheets & Apps Script ฉบับสมบูรณ์</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            คู่มือการติดตั้งและชุดสูตร Repair tracking
+            คู่มือการติดตั้งและสูตร Google Sheets การติดตามงานซ่อม
           </h2>
           <p className="text-xs sm:text-sm text-purple-200 font-normal leading-relaxed">
             รวบรวมโครงสร้างคอลัมน์ สูตร Google Sheets ที่คำนวณถูกต้องแม่นยำ กฎ Conditional Formatting สีพาสเทล โค้ด Apps Script พร้อมใช้ และคู่มือขั้นตอนการนำไปสร้างไฟล์จริงบน Google Sheets

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Issue, IssueSeverity, IssueStatus, Project, AppSettings } from '../../types';
-import { X, Save, AlertTriangle, Calendar, User, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Save, AlertTriangle, Calendar, User, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface IssueModalProps {
   isOpen: boolean;
@@ -36,7 +36,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     solutionPlan: '',
     targetDate: '',
     resolvedDate: '',
-    status: 'ยังไม่ดำเนินการ',
+    status: 'กำลังแก้ไข',
     note: ''
   });
 
@@ -57,7 +57,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
         solutionPlan: '',
         targetDate: '',
         resolvedDate: '',
-        status: 'ยังไม่ดำเนินการ',
+        status: 'กำลังแก้ไข',
         note: ''
       });
     }
@@ -74,7 +74,6 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     onSave({
       issueId: formData.issueId || generatedId,
       projectId: formData.projectId,
-      projectName: currentProject?.projectName || '',
       dateFound: formData.dateFound || new Date().toISOString().split('T')[0],
       title: formData.title,
       description: formData.description || '',
@@ -85,186 +84,118 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       solutionPlan: formData.solutionPlan || '',
       targetDate: formData.targetDate || '',
       resolvedDate: formData.resolvedDate || '',
-      status: (formData.status as IssueStatus) || 'ยังไม่ดำเนินการ',
+      status: (formData.status as IssueStatus) || 'กำลังแก้ไข',
       note: formData.note || ''
     });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+        
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-rose-50/50">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center font-bold">
+              <AlertCircle className="w-5 h-5 text-rose-600" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-800">
-                {initialIssue ? 'แก้ไขบันทึกปัญหา' : 'บันทึกปัญหาและอุปสรรคใหม่ (Add Issue)'}
+              <h2 className="text-base font-bold text-slate-900">
+                {initialIssue ? 'แก้ไขบันทึกปัญหา / อะไหล่' : 'บันทึกปัญหาหน้างาน / ขออะไหล่ (Report Issue)'}
               </h2>
-              <p className="text-xs text-slate-500">
-                บันทึกข้อมูลลงชีต Issue_Log (รหัส: {formData.issueId})
+              <p className="text-xs text-slate-500 font-mono">
+                รหัสปัญหา: {formData.issueId}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-4 space-y-4 flex-1">
-          {/* Project Link */}
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  เลือกโครงการ <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  required
-                  value={formData.projectId || ''}
-                  onChange={e => setFormData({ ...formData, projectId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-mono font-bold text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
-                >
-                  {projects.map(p => (
-                    <option key={p.projectId} value={p.projectId}>
-                      {p.projectId}
-                    </option>
-                  ))}
-                </select>
+          {/* Repair Job Selection */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              สังกัดใบงานซ่อม <span className="text-rose-500">*</span>
+            </label>
+            <select
+              required
+              value={formData.projectId}
+              onChange={e => setFormData({ ...formData, projectId: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white text-slate-800 font-medium focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+            >
+              {projects.map(p => (
+                <option key={p.projectId} value={p.projectId}>
+                  {p.projectId} - {p.projectName}
+                </option>
+              ))}
+            </select>
+            {currentProject && (
+              <div className="mt-1 text-[11px] text-slate-500">
+                แผนก: <span className="font-medium text-slate-700">{currentProject.department}</span>
               </div>
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ชื่อโครงการ (Auto Lookup)
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={currentProject?.projectName || 'ไม่พบโครงการ'}
-                  className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg text-xs text-slate-700 font-medium"
-                />
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Issue ID, Date Found, Title */}
-          <div className="grid grid-cols-4 gap-3">
+          {/* ID & Date Found */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Issue_ID
+                รหัสปัญหา (ISS_ID)
               </label>
               <input
                 type="text"
                 required
                 value={formData.issueId || ''}
                 onChange={e => setFormData({ ...formData, issueId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold bg-slate-50 text-slate-700"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold bg-slate-50 text-slate-800"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                วันที่พบปัญหา <span className="text-rose-500">*</span>
+                วันที่พบปัญหา
               </label>
               <input
                 type="date"
                 required
                 value={formData.dateFound || ''}
                 onChange={e => setFormData({ ...formData, dateFound: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                หัวข้อปัญหา <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="สรุปประเด็นปัญหา..."
-                value={formData.title || ''}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
               />
             </div>
           </div>
 
-          {/* Description & Impact */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                รายละเอียดปัญหา
-              </label>
-              <textarea
-                rows={2}
-                placeholder="อาการของปัญหาที่พบ..."
-                value={formData.description || ''}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                ผลกระทบต่องาน
-              </label>
-              <textarea
-                rows={2}
-                placeholder="ผลกระทบต่อแผนงานหรือผู้ใช้..."
-                value={formData.impact || ''}
-                onChange={e => setFormData({ ...formData, impact: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
-              />
-            </div>
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              หัวข้อปัญหา / อาการเสีย <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="เช่น อะไหล่โอริงคอมเพรสเซอร์ขาดตลาด, น็อตยึดหน้าแปลนเป็นสนิม..."
+              value={formData.title || ''}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+            />
           </div>
 
-          {/* Root Cause & Solution Plan */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                สาเหตุของปัญหา (Root Cause)
-              </label>
-              <input
-                type="text"
-                placeholder="สาเหตุที่แท้จริง..."
-                value={formData.rootCause || ''}
-                onChange={e => setFormData({ ...formData, rootCause: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                แนวทางแก้ไข (Solution Plan)
-              </label>
-              <input
-                type="text"
-                placeholder="วิธีแก้ไขที่วางแผนไว้..."
-                value={formData.solutionPlan || ''}
-                onChange={e => setFormData({ ...formData, solutionPlan: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
-              />
-            </div>
-          </div>
-
-          {/* Severity & Owner */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          {/* Severity & Technician */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 ระดับความรุนแรง
               </label>
               <select
-                value={formData.severity || 'ปานกลาง'}
+                value={formData.severity}
                 onChange={e => setFormData({ ...formData, severity: e.target.value as IssueSeverity })}
-                className={`w-full px-3 py-2 border rounded-lg text-xs font-semibold focus:ring-2 focus:ring-rose-400 focus:outline-hidden ${
-                  formData.severity === 'วิกฤต' ? 'bg-rose-100 text-rose-800 border-rose-300' :
-                  formData.severity === 'สูง' ? 'bg-orange-100 text-orange-800 border-orange-300' :
-                  formData.severity === 'ปานกลาง' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                  'bg-emerald-100 text-emerald-800 border-emerald-300'
-                }`}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
               >
                 {settings.issueSeverities.map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -272,14 +203,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-slate-400" />
-                ผู้รับผิดชอบแก้ไข
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ช่างผู้รับผิดชอบแก้ไข
               </label>
               <select
-                value={formData.owner || ''}
+                value={formData.owner}
                 onChange={e => setFormData({ ...formData, owner: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
               >
                 {settings.assignees.map(a => (
                   <option key={a} value={a}>{a}</option>
@@ -288,39 +218,77 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             </div>
           </div>
 
-          {/* Dates & Status */}
+          {/* Root Cause & Impact */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                สาเหตุที่แท้จริง (Root Cause)
+              </label>
+              <textarea
+                rows={2}
+                placeholder="เกิดจากอะไหล่เสื่อมสภาพ, ขาดการหล่อลื่น..."
+                value={formData.rootCause || ''}
+                onChange={e => setFormData({ ...formData, rootCause: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ผลกระทบต่องานซ่อม
+              </label>
+              <textarea
+                rows={2}
+                placeholder="ทำให้ขั้นตอนการประกอบล่าช้าไป 2 วัน..."
+                value={formData.impact || ''}
+                onChange={e => setFormData({ ...formData, impact: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+              />
+            </div>
+          </div>
+
+          {/* Solution Plan */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              แนวทางแก้ไข / อะไหล่ที่ต้องจัดหา
+            </label>
+            <textarea
+              rows={2}
+              placeholder="ระบุเบอร์อะไหล่ แหล่งจำหน่าย หรือขั้นตอนแก้ปัญหาเฉพาะหน้า..."
+              value={formData.solutionPlan || ''}
+              onChange={e => setFormData({ ...formData, solutionPlan: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+            />
+          </div>
+
+          {/* Target Date & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                วันที่กำหนดแก้ไข <span className="text-rose-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                กำหนดแก้ไขเสร็จ
               </label>
               <input
                 type="date"
                 required
                 value={formData.targetDate || ''}
                 onChange={e => setFormData({ ...formData, targetDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                สถานะการแก้ไข
+                สถานะปัญหา
               </label>
               <select
-                value={formData.status || 'ยังไม่ดำเนินการ'}
+                value={formData.status}
                 onChange={e => {
-                  const val = e.target.value as IssueStatus;
-                  const newResolvedDate = (val === 'แก้ไขแล้ว' || val === 'ปิดปัญหา') && !formData.resolvedDate 
-                    ? new Date().toISOString().split('T')[0] 
-                    : formData.resolvedDate;
-                  setFormData({ 
-                    ...formData, 
-                    status: val,
-                    resolvedDate: newResolvedDate
+                  const s = e.target.value as IssueStatus;
+                  setFormData({
+                    ...formData,
+                    status: s,
+                    resolvedDate: s === 'ปิดปัญหา' || s === 'แก้ไขแล้ว' ? (formData.resolvedDate || new Date().toISOString().split('T')[0]) : formData.resolvedDate
                   });
                 }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
               >
                 {settings.issueStatuses.map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -329,45 +297,31 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                วันที่แก้ไขเสร็จ (ถ้าปิด)
+                วันที่แก้ไขสำเร็จจริง
               </label>
               <input
                 type="date"
                 value={formData.resolvedDate || ''}
                 onChange={e => setFormData({ ...formData, resolvedDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
               />
             </div>
           </div>
 
-          {/* Note */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              หมายเหตุ
-            </label>
-            <input
-              type="text"
-              placeholder="หมายเหตุเพิ่มเติม..."
-              value={formData.note || ''}
-              onChange={e => setFormData({ ...formData, note: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-400 focus:outline-hidden"
-            />
-          </div>
-
           {/* Footer */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-end space-x-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition-colors flex items-center space-x-1.5 shadow-sm shadow-rose-500/20"
+              className="px-5 py-2 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 flex items-center space-x-1.5 shadow-xs transition-all active:scale-98"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-3.5 h-3.5" />
               <span>บันทึกปัญหา</span>
             </button>
           </div>

@@ -15,11 +15,11 @@ import {
   enrichIssues 
 } from '../../utils/calculations';
 import { 
-  FolderKanban, 
+  Wrench, 
   CheckCircle2, 
   Clock, 
   AlertTriangle, 
-  Flame, 
+  AlertCircle,
   Percent, 
   TrendingUp, 
   DollarSign, 
@@ -31,7 +31,11 @@ import {
   ChevronRight,
   Plus,
   Edit3,
-  Trash2
+  Trash2,
+  Building2,
+  User,
+  Activity,
+  Check
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -54,7 +58,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   issues,
   settings,
   onNavigateToTab,
-  onSelectProject,
   onOpenProjectModal,
   onEditProject,
   onDeleteProject,
@@ -81,7 +84,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         const q = filter.search.toLowerCase();
         return p.projectName.toLowerCase().includes(q) || 
                p.projectId.toLowerCase().includes(q) ||
-               p.department.toLowerCase().includes(q);
+               p.department.toLowerCase().includes(q) ||
+               (p.owner && p.owner.toLowerCase().includes(q));
       }
       return true;
     });
@@ -122,7 +126,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const enrichedT = useMemo(() => enrichTasks(filteredTasks, projects), [filteredTasks, projects]);
   const enrichedI = useMemo(() => enrichIssues(filteredIssues, projects), [filteredIssues, projects]);
 
-  // Upcoming tasks in 7 days
+  // Upcoming repair tasks in 7 days
   const upcomingTasks = useMemo(() => {
     return enrichedT
       .filter(t => t.status !== 'เสร็จสิ้น' && (t.daysRemaining ?? 999) <= 7 && (t.daysOverdue ?? 0) === 0)
@@ -130,7 +134,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       .slice(0, 5);
   }, [enrichedT]);
 
-  // Delayed tasks (Overdue)
+  // Delayed / Overdue repair tasks
   const delayedTasksList = useMemo(() => {
     return enrichedT
       .filter(t => t.status !== 'เสร็จสิ้น' && (t.daysOverdue ?? 0) > 0)
@@ -138,7 +142,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       .slice(0, 5);
   }, [enrichedT]);
 
-  // Urgent Issues (Critical / High & not closed)
+  // Critical / High severity repair issues
   const urgentIssuesList = useMemo(() => {
     return enrichedI
       .filter(i => i.status !== 'ปิดปัญหา' && (i.severity === 'วิกฤต' || i.severity === 'สูง'))
@@ -150,66 +154,60 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       .slice(0, 5);
   }, [enrichedI]);
 
-  // Project status distribution for donut chart
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      'กำลังดำเนินการ': 0,
-      'เสร็จสิ้น': 0,
-      'เสี่ยงล่าช้า': 0,
-      'ล่าช้า': 0,
-      'ยังไม่เริ่ม': 0,
-      'รอดำเนินการ': 0
-    };
-    enrichedP.forEach(p => {
-      counts[p.status] = (counts[p.status] || 0) + 1;
-    });
-    return counts;
-  }, [enrichedP]);
+  // Status badge styling helper
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'เสร็จสิ้น':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'กำลังดำเนินการ':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'รอดำเนินการ':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'เสี่ยงล่าช้า':
+        return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'ล่าช้า':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
 
-  // Issue severity distribution
-  const severityCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      'วิกฤต': 0,
-      'สูง': 0,
-      'ปานกลาง': 0,
-      'ต่ำ': 0
-    };
-    filteredIssues.forEach(i => {
-      if (i.status !== 'ปิดปัญหา') {
-        counts[i.severity] = (counts[i.severity] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [filteredIssues]);
+  const isFiltered = filter.projectId !== 'all' || 
+                     filter.assignee !== 'all' || 
+                     filter.status !== 'all' || 
+                     (filter.department && filter.department !== 'all') || 
+                     filter.search !== '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center space-x-2 w-full md:w-auto">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">ตัวกรองแดชบอร์ด:</span>
+      
+      {/* Search & Filter Bar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
+          
+          <div className="flex items-center space-x-2 w-full lg:w-auto">
+            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">ตัวกรอง:</span>
             <input
               type="text"
-              placeholder="ค้นหาชื่อโครงการ, งาน, รหัส..."
+              placeholder="ค้นหาชื่องานซ่อม, รหัส REP, แผนก, หรือช่าง..."
               value={filter.search}
               onChange={e => setFilter({ ...filter, search: e.target.value })}
-              className="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-full md:w-56 focus:ring-2 focus:ring-sky-400 focus:outline-hidden"
+              className="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-full lg:w-64 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            {/* Filter by Project */}
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            {/* Filter by Repair Job */}
             <select
               value={filter.projectId}
               onChange={e => setFilter({ ...filter, projectId: e.target.value })}
-              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-sky-400 focus:outline-hidden font-medium"
+              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-medium max-w-[180px] truncate"
             >
-              <option value="all">ทุกโครงการ ({projects.length})</option>
+              <option value="all">ทุกงานซ่อม ({projects.length})</option>
               {projects.map(p => (
                 <option key={p.projectId} value={p.projectId}>
-                  {p.projectId} - {p.projectName.length > 25 ? p.projectName.substring(0, 25) + '...' : p.projectName}
+                  {p.projectId} - {p.projectName}
                 </option>
               ))}
             </select>
@@ -218,9 +216,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <select
               value={filter.department || 'all'}
               onChange={e => setFilter({ ...filter, department: e.target.value })}
-              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-sky-400 focus:outline-hidden max-w-[160px] truncate"
+              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-hidden max-w-[170px] truncate"
             >
-              <option value="all">ทุกหน่วยงาน</option>
+              <option value="all">ทุกแผนกช่าง</option>
               {settings.departments.map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
@@ -230,7 +228,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <select
               value={filter.status}
               onChange={e => setFilter({ ...filter, status: e.target.value })}
-              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-sky-400 focus:outline-hidden"
+              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             >
               <option value="all">ทุกสถานะ</option>
               {settings.projectStatuses.map(s => (
@@ -242,18 +240,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <select
               value={filter.assignee}
               onChange={e => setFilter({ ...filter, assignee: e.target.value })}
-              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-sky-400 focus:outline-hidden"
+              className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-hidden max-w-[150px] truncate"
             >
-              <option value="all">ทุกคน</option>
+              <option value="all">ช่างทุกคน</option>
               {settings.assignees.map(a => (
                 <option key={a} value={a}>{a.split(' ')[0]}</option>
               ))}
             </select>
 
-            {(filter.projectId !== 'all' || filter.assignee !== 'all' || filter.status !== 'all' || (filter.department && filter.department !== 'all') || filter.search) && (
+            {isFiltered && (
               <button
                 onClick={() => setFilter({ projectId: 'all', assignee: 'all', status: 'all', department: 'all', search: '' })}
-                className="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-medium transition-colors"
+                className="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-medium transition-colors border border-rose-200"
               >
                 ล้างตัวกรอง
               </button>
@@ -262,542 +260,401 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Row 1: Primary KPI Pastel Metric Cards */}
+      {/* Row 1: Primary KPI Cards */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-slate-800 flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" />
-            <span>ภาพรวมโครงการและตัวชี้วัดหลัก (KPI Metrics)</span>
+          <h2 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+            <Activity className="w-4 h-4 text-blue-600" />
+            <span>ตัวชี้วัดภาพรวมงานซ่อมบำรุง (Maintenance KPIs)</span>
           </h2>
-          <span className="text-xs text-slate-400">อัปเดตอัตโนมัติ Real-time</span>
+          <span className="text-xs text-slate-400 font-medium">อัปเดตแบบเรียลไทม์</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {/* Card 1: Total Projects (Purple pastel) */}
-          <div className="bg-[#FAF5FF] border border-[#E9D5FF] rounded-2xl p-4 shadow-2xs">
-            <div className="flex items-center justify-between text-[#7E22CE]">
-              <span className="text-xs font-semibold">โครงการทั้งหมด</span>
-              <FolderKanban className="w-4 h-4" />
+          
+          {/* Card 1: Total Repair Jobs */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-medium">ใบแจ้งซ่อมทั้งหมด</span>
+              <Wrench className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="mt-2 text-2xl font-black text-[#581C87]">
+            <div className="mt-2 text-2xl font-bold font-mono tabular-nums text-slate-900">
               {summary.totalProjects}
             </div>
-            <div className="mt-1 text-[11px] text-[#9333EA] flex items-center justify-between">
-              <span>งบรวม {formatCurrency(summary.totalBudget).replace('THB', '฿')}</span>
+            <div className="mt-1 text-[11px] text-slate-500 truncate">
+              งบรวม {formatCurrency(summary.totalBudget).replace('THB', '฿')}
             </div>
           </div>
 
-          {/* Card 2: In Progress (Sky blue pastel) */}
-          <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-2xl p-4 shadow-2xs">
-            <div className="flex items-center justify-between text-[#0369A1]">
-              <span className="text-xs font-semibold">กำลังดำเนินการ</span>
-              <Clock className="w-4 h-4" />
+          {/* Card 2: In Progress */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-medium">กำลังซ่อมแซม</span>
+              <Clock className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="mt-2 text-2xl font-black text-[#075985]">
+            <div className="mt-2 text-2xl font-bold font-mono tabular-nums text-blue-600">
               {summary.inProgressProjects}
             </div>
-            <div className="mt-1 text-[11px] text-[#0284C7]">
-              ยังไม่เริ่ม: {summary.notStartedProjects} โครงการ
+            <div className="mt-1 text-[11px] text-slate-500">
+              รอดำเนินการ: {summary.notStartedProjects} รายการ
             </div>
           </div>
 
-          {/* Card 3: Completed (Mint green pastel) */}
-          <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-4 shadow-2xs">
-            <div className="flex items-center justify-between text-[#15803D]">
-              <span className="text-xs font-semibold">เสร็จสิ้นแล้ว</span>
-              <CheckCircle2 className="w-4 h-4" />
+          {/* Card 3: Completed */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-medium">ซ่อมเสร็จสิ้น</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
-            <div className="mt-2 text-2xl font-black text-[#166534]">
+            <div className="mt-2 text-2xl font-bold font-mono tabular-nums text-emerald-600">
               {summary.completedProjects}
             </div>
-            <div className="mt-1 text-[11px] text-[#16A34A]">
-              งานย่อยเสร็จ: {summary.completedTasks}/{summary.totalTasks}
+            <div className="mt-1 text-[11px] text-slate-500 font-mono tabular-nums">
+              ขั้นตอนเสร็จ {summary.completedTasks}/{summary.totalTasks}
             </div>
           </div>
 
-          {/* Card 4: Delayed / Risk (Peach orange pastel) */}
-          <div className="bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl p-4 shadow-2xs">
-            <div className="flex items-center justify-between text-[#C2410C]">
-              <span className="text-xs font-semibold">ล่าช้า / เสี่ยงล่าช้า</span>
-              <Flame className="w-4 h-4" />
+          {/* Card 4: Overdue / At Risk */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-medium">เสี่ยง / ล่าช้า</span>
+              <AlertTriangle className="w-4 h-4 text-orange-600" />
             </div>
-            <div className="mt-2 text-2xl font-black text-[#9A3412]">
+            <div className="mt-2 text-2xl font-bold font-mono tabular-nums text-orange-600">
               {summary.delayedProjects + summary.atRiskProjects}
             </div>
-            <div className="mt-1 text-[11px] text-[#EA580C]">
-              ล่าช้า {summary.delayedProjects} | เสี่ยง {summary.atRiskProjects}
+            <div className="mt-1 text-[11px] text-slate-500 font-mono tabular-nums">
+              ล่าช้า {summary.delayedProjects} · เสี่ยง {summary.atRiskProjects}
             </div>
           </div>
 
-          {/* Card 5: Unresolved Issues (Rose pink pastel) */}
-          <div className="bg-[#FFF1F2] border border-[#FECDD3] rounded-2xl p-4 shadow-2xs">
-            <div className="flex items-center justify-between text-[#BE185D]">
-              <span className="text-xs font-semibold">ปัญหาค้าง (ยังไม่ปิด)</span>
-              <AlertTriangle className="w-4 h-4" />
+          {/* Card 5: Open Issues & Parts Waiting */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-medium">ปัญหา/รออะไหล่</span>
+              <AlertCircle className="w-4 h-4 text-rose-600" />
             </div>
-            <div className="mt-2 text-2xl font-black text-[#9F1239]">
+            <div className="mt-2 text-2xl font-bold font-mono tabular-nums text-rose-600">
               {summary.openIssues}
             </div>
-            <div className="mt-1 text-[11px] text-[#E11D48]">
-              วิกฤต: {summary.criticalIssues} | สูง: {summary.highIssues}
+            <div className="mt-1 text-[11px] text-slate-500 font-mono tabular-nums">
+              วิกฤต: {summary.criticalIssues} · สูง: {summary.highIssues}
             </div>
           </div>
 
-          {/* Card 6: Overall Progress (Soft Lavender) */}
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 shadow-2xs">
-            <div className="flex items-center justify-between text-purple-700">
-              <span className="text-xs font-semibold">ความคืบหน้ารวม</span>
-              <Percent className="w-4 h-4" />
+          {/* Card 6: Overall Completion Rate */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-medium">ความคืบหน้ารวม</span>
+              <Percent className="w-4 h-4 text-indigo-600" />
             </div>
-            <div className="mt-2 text-2xl font-black text-purple-900">
+            <div className="mt-2 text-2xl font-bold font-mono tabular-nums text-slate-900">
               {summary.overallProgress}%
             </div>
-            <div className="mt-2 w-full bg-purple-200/60 rounded-full h-1.5 overflow-hidden">
+            <div className="mt-2 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div
-                className="bg-purple-600 h-1.5 rounded-full transition-all duration-500"
+                className="bg-blue-600 h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, summary.overallProgress)}%` }}
               />
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* Row 2: Secondary Metric Bar (Tasks & Issues count details) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+      {/* Row 2: Secondary Quick Metric Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex items-center space-x-3 px-2">
-          <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center font-bold text-xs">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs font-mono tabular-nums">
             {summary.totalTasks}
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-800">จำนวนงานย่อยทั้งหมด</div>
-            <div className="text-[11px] text-slate-500">เสร็จ {summary.completedTasks} | ทำอยู่ {summary.inProgressTasks}</div>
+            <div className="text-xs font-semibold text-slate-800">ขั้นตอนการซ่อมทั้งหมด</div>
+            <div className="text-[11px] text-slate-500 font-mono tabular-nums">เสร็จ {summary.completedTasks} · กำลังทำ {summary.inProgressTasks}</div>
           </div>
         </div>
 
         <div className="flex items-center space-x-3 px-2 border-l border-slate-100">
-          <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+          <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-700 flex items-center justify-center font-bold text-xs font-mono tabular-nums">
             {summary.delayedTasks}
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-800">งานย่อยที่ล่าช้า (Overdue)</div>
-            <div className="text-[11px] text-rose-500">เลยกำหนดส่งมอบแล้ว</div>
+            <div className="text-xs font-semibold text-slate-800">ขั้นตอนที่เลยกำหนด</div>
+            <div className="text-[11px] text-orange-600">ต้องเร่งดำเนินการ</div>
           </div>
         </div>
 
         <div className="flex items-center space-x-3 px-2 border-l border-slate-100">
-          <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs">
+          <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-xs font-mono tabular-nums">
             {summary.projectsWithIssues}
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-800">โครงการที่มีปัญหา</div>
-            <div className="text-[11px] text-slate-500">จากทั้งหมด {summary.totalProjects} โครงการ</div>
+            <div className="text-xs font-semibold text-slate-800">งานซ่อมที่ติดปัญหา</div>
+            <div className="text-[11px] text-slate-500">จากทั้งหมด {summary.totalProjects} รายการ</div>
           </div>
         </div>
 
         <div className="flex items-center space-x-3 px-2 border-l border-slate-100">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs font-mono tabular-nums">
             {summary.resolvedIssues}
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-800">ปัญหาที่แก้ไข/ปิดแล้ว</div>
-            <div className="text-[11px] text-emerald-600">ปิดสำเร็จ {summary.resolvedIssues} รายการ</div>
+            <div className="text-xs font-semibold text-slate-800">ปัญหาที่แก้ไขเสร็จแล้ว</div>
+            <div className="text-[11px] text-emerald-600 font-mono tabular-nums">ปิดไปแล้ว {summary.resolvedIssues} จุด</div>
           </div>
         </div>
       </div>
 
-      {/* Row 3: Charts Section (Visual Data Visualization) */}
+      {/* Row 3: Progress by Repair Job & Operational Health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Chart 1: Project Progress Bars */}
-        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
+        
+        {/* Progress List */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-800 flex items-center space-x-1.5">
-                <TrendingUp className="w-4 h-4 text-sky-600" />
-                <span>กราฟแสดงความคืบหน้าของแต่ละโครงการ (% Progress)</span>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <span>ความคืบหน้าของแต่ละใบแจ้งซ่อม (% Progress)</span>
               </h3>
-              <p className="text-xs text-slate-400">คำนวณจากน้ำหนักงานจริงใน Task_Tracking</p>
+              <p className="text-xs text-slate-500">คำนวณจากน้ำหนักงานและขั้นตอนการซ่อมจริง</p>
             </div>
             <div className="flex items-center space-x-2">
               {onOpenProjectModal && (
                 <button
                   onClick={onOpenProjectModal}
-                  className="px-2.5 py-1 text-xs font-semibold bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 rounded-lg flex items-center space-x-1 transition-all"
-                  title="เพิ่มโครงการหลักใหม่"
+                  className="px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg flex items-center space-x-1 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ โครงการ</span>
+                  <span>+ เปิดใบแจ้งซ่อม</span>
                 </button>
               )}
               <button
                 onClick={() => onNavigateToTab('projects')}
-                className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center"
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center ml-2"
               >
                 ดูทั้งหมด <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
               </button>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {enrichedP.map((project) => {
-              const progress = project.progress ?? 0;
-              const isDone = project.status === 'เสร็จสิ้น';
-              const isDelayed = project.status === 'ล่าช้า';
-              const isAtRisk = project.status === 'เสี่ยงล่าช้า';
+          <div className="space-y-3.5">
+            {enrichedP.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                ไม่พบข้อมูลใบงานซ่อมตามเงื่อนไขตัวกรอง
+              </div>
+            ) : (
+              enrichedP.map((job) => {
+                const progress = job.progress ?? 0;
+                const isDone = job.status === 'เสร็จสิ้น';
+                const isDelayed = job.status === 'ล่าช้า';
+                const isAtRisk = job.status === 'เสี่ยงล่าช้า';
 
-              const barColor = isDone 
-                ? 'bg-emerald-500' 
-                : isDelayed 
-                ? 'bg-orange-500' 
-                : isAtRisk 
-                ? 'bg-amber-500' 
-                : 'bg-sky-500';
+                const barColor = isDone 
+                  ? 'bg-emerald-500' 
+                  : isDelayed 
+                  ? 'bg-rose-500' 
+                  : isAtRisk 
+                  ? 'bg-orange-500' 
+                  : 'bg-blue-600';
 
-              return (
-                <div key={project.projectId} className="group p-2 -mx-2 rounded-xl hover:bg-slate-50/70 transition-colors space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center space-x-2 flex-1 min-w-0 pr-2">
-                      <span className="font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] shrink-0">
-                        {project.projectId}
-                      </span>
-                      <span className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-xs">
-                        {project.projectName}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                        isDone ? 'bg-emerald-100 text-emerald-800' :
-                        isDelayed ? 'bg-orange-100 text-orange-800' :
-                        isAtRisk ? 'bg-amber-100 text-amber-800' :
-                        'bg-sky-100 text-sky-800'
-                      }`}>
-                        {project.status}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <div className="font-bold text-slate-700 font-mono">
-                        {progress}%
+                return (
+                  <div 
+                    key={job.projectId} 
+                    className="p-3.5 rounded-lg border border-slate-100 hover:border-slate-300 hover:bg-slate-50/50 transition-all"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {job.projectId}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-800 line-clamp-1">
+                          {job.projectName}
+                        </span>
                       </div>
-                      {/* Quick Actions */}
-                      <div className="flex items-center space-x-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium border ${getStatusBadge(job.status)}`}>
+                          {job.status}
+                        </span>
+                        <span className="font-mono text-xs font-bold tabular-nums text-slate-800 min-w-[36px] text-right">
+                          {progress}%
+                        </span>
                         {onEditProject && (
                           <button
-                            onClick={() => onEditProject(project)}
-                            title="แก้ไขโครงการ"
-                            className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded"
+                            onClick={() => onEditProject(job)}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition-colors"
+                            title="แก้ไขใบงานซ่อม"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                         )}
                         {onDeleteProject && (
                           <button
-                            onClick={() => onDeleteProject(project.projectId)}
-                            title="ลบโครงการ"
-                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                            onClick={() => onDeleteProject(job.projectId)}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                            title="ลบใบงานซ่อม"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Progress Bar Container */}
-                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div
-                      className={`h-2.5 rounded-full transition-all duration-700 ${barColor}`}
-                      style={{ width: `${Math.min(100, progress)}%` }}
-                    />
-                  </div>
+                    {/* Progress Track */}
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-500 ${barColor}`}
+                        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                      />
+                    </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
-                    <span>งาน: {project.completedTasks}/{project.totalTasks} งานย่อย</span>
-                    <span>งบ: {formatCurrency(project.budget).replace('THB', '฿')}</span>
-                    <span>สิ้นสุด: {formatDateThai(project.plannedEndDate)}</span>
+                    {/* Unboxed Metadata */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+                      <span className="text-slate-600">{job.department}</span>
+                      <span aria-hidden="true" className="text-slate-300">·</span>
+                      <span>ช่าง: {job.owner.split(' ')[0]}</span>
+                      <span aria-hidden="true" className="text-slate-300">·</span>
+                      <span>กำหนด: {formatDateThai(job.plannedEndDate)}</span>
+                      <span aria-hidden="true" className="text-slate-300">·</span>
+                      <span>ขั้นตอน {job.completedTasks ?? 0}/{job.totalTasks ?? 0}</span>
+                      {job.openIssues && job.openIssues > 0 ? (
+                        <>
+                          <span aria-hidden="true" className="text-slate-300">·</span>
+                          <span className="text-rose-600 font-medium">รออะไหล่/ปัญหา {job.openIssues} จุด</span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-
-            {enrichedP.length === 0 && (
-              <div className="text-center py-12 text-xs">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
-                  <FolderKanban className="w-5 h-5" />
-                </div>
-                <div className="font-semibold text-slate-600 mb-1">ไม่พบโครงการในระบบ</div>
-                <p className="text-slate-400 mb-3">กดปุ่มด้านล่างเพื่อเพิ่มโครงการหลักใหม่ได้ทันที</p>
-                {onOpenProjectModal && (
-                  <button
-                    onClick={onOpenProjectModal}
-                    className="px-3.5 py-1.5 text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white rounded-lg inline-flex items-center space-x-1 shadow-sm"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>เพิ่มโครงการหลักใหม่</span>
-                  </button>
-                )}
-              </div>
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* Chart 2: Project Status Distribution (Donut Breakdown) */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" />
-              <span>สัดส่วนสถานะโครงการ</span>
-            </h3>
-            <p className="text-xs text-slate-400 mb-4">สถานะโครงการทั้งหมด {summary.totalProjects} โครงการ</p>
+        {/* Quick Operations Sidebar */}
+        <div className="space-y-5">
+          
+          {/* Urgent Issues & Parts Widget */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                <span>อาการเสียเร่งด่วน / รออะไหล่</span>
+              </h3>
+              <button
+                onClick={() => onNavigateToTab('issues')}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ดูทั้งหมด ({issues.filter(i => i.status !== 'ปิดปัญหา').length})
+              </button>
+            </div>
 
-            {/* Donut representation */}
-            <div className="flex items-center justify-center my-3">
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  {/* Background Circle */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.91549430918954"
-                    fill="transparent"
-                    stroke="#F1F5F9"
-                    strokeWidth="3.8"
-                  />
-                  {/* Progress segment */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.91549430918954"
-                    fill="transparent"
-                    stroke="#38BDF8"
-                    strokeWidth="3.8"
-                    strokeDasharray={`${(summary.inProgressProjects / Math.max(1, summary.totalProjects)) * 100} 100`}
-                    strokeDashoffset="0"
-                  />
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.91549430918954"
-                    fill="transparent"
-                    stroke="#4ADE80"
-                    strokeWidth="3.8"
-                    strokeDasharray={`${(summary.completedProjects / Math.max(1, summary.totalProjects)) * 100} 100`}
-                    strokeDashoffset={`${-((summary.inProgressProjects / Math.max(1, summary.totalProjects)) * 100)}`}
-                  />
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.91549430918954"
-                    fill="transparent"
-                    stroke="#FB923C"
-                    strokeWidth="3.8"
-                    strokeDasharray={`${((summary.delayedProjects + summary.atRiskProjects) / Math.max(1, summary.totalProjects)) * 100} 100`}
-                    strokeDashoffset={`${-(((summary.inProgressProjects + summary.completedProjects) / Math.max(1, summary.totalProjects)) * 100)}`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xl font-black text-slate-800">{summary.totalProjects}</span>
-                  <span className="text-[10px] text-slate-400 font-medium">โครงการ</span>
+            <div className="space-y-2.5">
+              {urgentIssuesList.length === 0 ? (
+                <div className="py-6 text-center text-slate-400 text-xs">
+                  ไม่มีปัญหาอาการเสียวิกฤตค้างอยู่
                 </div>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div className="space-y-2 mt-4 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center space-x-1.5 text-slate-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-                  <span>กำลังดำเนินการ</span>
-                </span>
-                <span className="font-bold text-slate-800">{summary.inProgressProjects} โครงการ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center space-x-1.5 text-slate-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                  <span>เสร็จสิ้น</span>
-                </span>
-                <span className="font-bold text-slate-800">{summary.completedProjects} โครงการ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center space-x-1.5 text-slate-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                  <span>เสี่ยงล่าช้า</span>
-                </span>
-                <span className="font-bold text-slate-800">{summary.atRiskProjects} โครงการ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center space-x-1.5 text-slate-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-                  <span>ล่าช้า</span>
-                </span>
-                <span className="font-bold text-slate-800">{summary.delayedProjects} โครงการ</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Issue Severity Breakdown mini card */}
-          <div className="mt-4 pt-3 border-t border-slate-100">
-            <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
-              <span>ปัญหาแยกตามระดับความรุนแรง (ค้าง)</span>
-              <span className="text-[11px] text-rose-500 font-bold">{summary.openIssues} ข้อ</span>
-            </div>
-            <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
-              <div className="bg-rose-50 border border-rose-200 rounded-lg p-1.5 text-rose-800">
-                <div className="font-bold text-xs">{severityCounts['วิกฤต']}</div>
-                <div>วิกฤต</div>
-              </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-1.5 text-orange-800">
-                <div className="font-bold text-xs">{severityCounts['สูง']}</div>
-                <div>สูง</div>
-              </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-1.5 text-amber-800">
-                <div className="font-bold text-xs">{severityCounts['ปานกลาง']}</div>
-                <div>ปานกลาง</div>
-              </div>
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-1.5 text-emerald-800">
-                <div className="font-bold text-xs">{severityCounts['ต่ำ']}</div>
-                <div>ต่ำ</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 4: Alert Tables (Early Warning & Overdue Monitoring) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Table 1: Overdue Tasks (🚨 งานล่าช้าที่ต้องเร่งรัด) */}
-        <div className="bg-white rounded-2xl border border-orange-200 shadow-2xs overflow-hidden">
-          <div className="bg-orange-50/70 px-4 py-3 border-b border-orange-100 flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-orange-800">
-              <Flame className="w-4 h-4 text-orange-600" />
-              <h4 className="text-xs font-bold">ตารางงานที่ล่าช้า (Overdue Tasks)</h4>
-            </div>
-            <span className="text-[10px] bg-orange-200 text-orange-900 font-bold px-2 py-0.5 rounded-full">
-              {delayedTasksList.length} งาน
-            </span>
-          </div>
-
-          <div className="p-3 divide-y divide-slate-100 text-xs">
-            {delayedTasksList.map(task => (
-              <div key={task.taskId} className="py-2.5 first:pt-1 last:pb-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-1.5">
-                      <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-semibold">
-                        {task.projectId}
+              ) : (
+                urgentIssuesList.map(issue => (
+                  <div key={issue.issueId} className="p-2.5 rounded-lg border border-rose-100 bg-rose-50/30">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-mono text-[11px] font-bold text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded">
+                        {issue.issueId}
                       </span>
-                      <span className="font-medium text-slate-800 line-clamp-1">{task.taskName}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      ผู้รับผิดชอบ: {task.assignee.split(' ')[0]} | ครบกำหนด: {formatDateThai(task.dueDate)}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
-                      ล่าช้า {task.daysOverdue} วัน
-                    </span>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{task.progress}%</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {delayedTasksList.length === 0 && (
-              <div className="py-6 text-center text-xs text-emerald-600 font-medium">
-                ✅ ยอดเยี่ยม! ไม่มีงานย่อยที่เลยกำหนดส่งมอบ
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Table 2: Near Deadline (⏰ งานใกล้ครบกำหนด 7 วัน) */}
-        <div className="bg-white rounded-2xl border border-amber-200 shadow-2xs overflow-hidden">
-          <div className="bg-amber-50/70 px-4 py-3 border-b border-amber-100 flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-amber-800">
-              <Clock className="w-4 h-4 text-amber-600" />
-              <h4 className="text-xs font-bold">ตารางงานใกล้ครบกำหนดใน 7 วัน</h4>
-            </div>
-            <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">
-              {upcomingTasks.length} งาน
-            </span>
-          </div>
-
-          <div className="p-3 divide-y divide-slate-100 text-xs">
-            {upcomingTasks.map(task => (
-              <div key={task.taskId} className="py-2.5 first:pt-1 last:pb-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-1.5">
-                      <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-semibold">
-                        {task.projectId}
-                      </span>
-                      <span className="font-medium text-slate-800 line-clamp-1">{task.taskName}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      ผู้รับผิดชอบ: {task.assignee.split(' ')[0]} | ส่งมอบ: {formatDateThai(task.dueDate)}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
-                      เหลือ {task.daysRemaining} วัน
-                    </span>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{task.progress}%</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {upcomingTasks.length === 0 && (
-              <div className="py-6 text-center text-xs text-slate-400">
-                ไม่มีงานย่อยที่ครบกำหนดภายใน 7 วันนี้
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Table 3: Urgent Issues (⚠️ ปัญหาเร่งด่วนระดับ วิกฤต/สูง) */}
-        <div className="bg-white rounded-2xl border border-rose-200 shadow-2xs overflow-hidden">
-          <div className="bg-rose-50/70 px-4 py-3 border-b border-rose-100 flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-rose-800">
-              <AlertTriangle className="w-4 h-4 text-rose-600" />
-              <h4 className="text-xs font-bold">ปัญหาเร่งด่วน (ระดับวิกฤต & สูง)</h4>
-            </div>
-            <span className="text-[10px] bg-rose-200 text-rose-900 font-bold px-2 py-0.5 rounded-full">
-              {urgentIssuesList.length} ข้อ
-            </span>
-          </div>
-
-          <div className="p-3 divide-y divide-slate-100 text-xs">
-            {urgentIssuesList.map(issue => (
-              <div key={issue.issueId} className="py-2.5 first:pt-1 last:pb-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-1.5">
-                      <span className={`font-bold px-1.5 py-0.2 rounded text-[10px] ${
-                        issue.severity === 'วิกฤต' ? 'bg-rose-100 text-rose-700' : 'bg-orange-100 text-orange-700'
-                      }`}>
+                      <span className="text-[11px] font-semibold text-rose-600 bg-white px-1.5 py-0.5 rounded border border-rose-200">
                         {issue.severity}
                       </span>
-                      <span className="font-medium text-slate-800 line-clamp-1">{issue.title}</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      แก้โดย: {issue.owner.split(' ')[0]} | สถานะ: {issue.status}
+                    <div className="mt-1 text-xs font-semibold text-slate-800 line-clamp-1">
+                      {issue.title}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                      <span>รหัสงาน: {issue.projectId}</span>
+                      <span>ค้าง {issue.daysPending ?? 0} วัน</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                      ค้าง {issue.daysPending} วัน
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+                ))
+              )}
+            </div>
 
-            {urgentIssuesList.length === 0 && (
-              <div className="py-6 text-center text-xs text-emerald-600 font-medium">
-                ✅ ไม่มีปัญหาระดับวิกฤตหรือระดับสูงที่ยังคั่งค้าง
-              </div>
-            )}
+            <button
+              onClick={onOpenIssueModal}
+              className="mt-3 w-full py-1.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg flex items-center justify-center space-x-1 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ บันทึกปัญหา / แจ้งขออะไหล่</span>
+            </button>
           </div>
+
+          {/* Overdue / Upcoming Steps Widget */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+                <Clock className="w-4 h-4 text-orange-600" />
+                <span>ขั้นตอนที่ต้องเร่งดำเนินการ</span>
+              </h3>
+              <button
+                onClick={() => onNavigateToTab('tasks')}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ดูทั้งหมด ({tasks.length})
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {delayedTasksList.length === 0 && upcomingTasks.length === 0 ? (
+                <div className="py-6 text-center text-slate-400 text-xs">
+                  ทุกขั้นตอนดำเนินการตามกำหนดเวลา
+                </div>
+              ) : (
+                [...delayedTasksList, ...upcomingTasks].slice(0, 4).map(task => {
+                  const isOverdue = (task.daysOverdue ?? 0) > 0;
+                  return (
+                    <div 
+                      key={task.taskId} 
+                      className={`p-2.5 rounded-lg border ${
+                        isOverdue ? 'border-orange-200 bg-orange-50/30' : 'border-slate-200 bg-slate-50/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[11px] font-semibold text-slate-700">
+                          {task.taskId} · {task.projectId}
+                        </span>
+                        {isOverdue ? (
+                          <span className="text-[11px] font-bold text-rose-600">
+                            ล่าช้า {task.daysOverdue} วัน
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            เหลือ {task.daysRemaining} วัน
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs font-medium text-slate-800 line-clamp-1">
+                        {task.taskName}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>ช่าง: {task.assignee.split(' ')[0]}</span>
+                        <span className="font-mono font-semibold">{task.progress}%</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <button
+              onClick={onOpenTaskModal}
+              className="mt-3 w-full py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg flex items-center justify-center space-x-1 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ เพิ่มขั้นตอนงานซ่อม</span>
+            </button>
+          </div>
+
         </div>
+
       </div>
+
     </div>
   );
 };

@@ -27,10 +27,10 @@ import { IssueModal } from './components/modals/IssueModal';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 
 const STORAGE_KEYS = {
-  PROJECTS: 'pts_projects_v1',
-  TASKS: 'pts_tasks_v1',
-  ISSUES: 'pts_issues_v1',
-  SETTINGS: 'pts_settings_v1'
+  PROJECTS: 'repair_tracking_projects_v2',
+  TASKS: 'repair_tracking_tasks_v2',
+  ISSUES: 'repair_tracking_issues_v2',
+  SETTINGS: 'repair_tracking_settings_v2'
 };
 
 export default function App() {
@@ -206,7 +206,7 @@ export default function App() {
   const promptResetData = () => {
     setDeleteTarget({
       id: 'ALL',
-      name: 'ข้อมูลโครงการทั้งหมด',
+      name: 'ข้อมูลงานซ่อมและขั้นตอนทั้งหมด',
       type: 'reset'
     });
   };
@@ -260,8 +260,8 @@ export default function App() {
     setIsIssueModalOpen(true);
   };
 
-  const nextProjectId = generateNextId('PRJ', projects.map(p => ({ projectId: p.projectId })));
-  const nextTaskId = generateNextId('TASK', tasks.map(t => ({ taskId: t.taskId })));
+  const nextProjectId = generateNextId('REP', projects.map(p => ({ projectId: p.projectId })));
+  const nextTaskId = generateNextId('REP-TSK', tasks.map(t => ({ taskId: t.taskId })));
   const nextIssueId = generateNextId('ISS', issues.map(i => ({ issueId: i.issueId })));
 
   return (
@@ -401,12 +401,12 @@ export default function App() {
         onConfirm={handleConfirmDelete}
         title={
           deleteTarget?.type === 'project'
-            ? 'ยืนยันการลบโครงการหลัก'
+            ? 'ยืนยันการลบใบงานซ่อม'
             : deleteTarget?.type === 'task'
-            ? 'ยืนยันการลบงานย่อย'
+            ? 'ยืนยันการลบขั้นตอนงานซ่อม'
             : deleteTarget?.type === 'issue'
-            ? 'ยืนยันการลบปัญหา'
-            : 'ยืนยันการรีเซ็ตข้อมูล'
+            ? 'ยืนยันการลบปัญหา/อะไหล่'
+            : 'ยืนยันการรีเซ็ตข้อมูลงานซ่อม'
         }
         itemName={deleteTarget?.name || ''}
         itemId={deleteTarget?.id || ''}
